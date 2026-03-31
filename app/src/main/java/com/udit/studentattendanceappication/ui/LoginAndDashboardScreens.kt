@@ -156,7 +156,7 @@ fun LoginScreen(
                         Text("Login")
                     }
                     Text(
-                        text = "Password for all users: password123",
+                        text = "Password for all users: 123",
                         style = MaterialTheme.typography.bodySmall,
                         color = MutedText
                     )

@@ -20,8 +20,8 @@ class AttendanceViewModel : ViewModel() {
     private val attendanceState = mutableStateMapOf<String, MutableMap<String, Boolean>>()
 
     fun login(userId: String, password: String) {
-        if (password != "password123") {
-            uiState = uiState.copy(errorMessage = "Invalid password. Use password123.")
+        if (password != "123") {
+            uiState = uiState.copy(errorMessage = "Invalid password. Use 123.")
             return
         }
 
