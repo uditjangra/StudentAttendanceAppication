@@ -9,15 +9,20 @@ import com.udit.studentattendanceappication.ui.data.AttendanceRepository
 import com.udit.studentattendanceappication.ui.model.AppUiState
 import com.udit.studentattendanceappication.ui.model.DashboardTab
 import com.udit.studentattendanceappication.ui.model.LoginResult
+import com.udit.studentattendanceappication.ui.model.TeacherTab
 import com.udit.studentattendanceappication.ui.model.UserRole
 import java.time.LocalDate
 import java.time.YearMonth
 
 class AttendanceViewModel : ViewModel() {
+
     var uiState by mutableStateOf(AppUiState())
         private set
 
+    // Key: "classId|date" -> Map<studentId, Boolean>
     private val attendanceState = mutableStateMapOf<String, MutableMap<String, Boolean>>()
+
+    // ─── Auth ────────────────────────────────────────────────────────────────
 
     fun login(userId: String, password: String) {
         if (password != "123") {
@@ -38,7 +43,12 @@ class AttendanceViewModel : ViewModel() {
         val student = AttendanceRepository.students.firstOrNull { it.id == userId }
         if (student != null) {
             uiState = AppUiState(
-                loginResult = LoginResult(UserRole.Student, student.id, student.name),
+                loginResult = LoginResult(
+                    role = UserRole.Student,
+                    userId = student.id,
+                    displayName = student.name,
+                    classSection = student.classSection
+                ),
                 selectedDate = LocalDate.now(),
                 selectedMonth = YearMonth.now()
             )
@@ -52,8 +62,14 @@ class AttendanceViewModel : ViewModel() {
         uiState = AppUiState()
     }
 
-    fun selectTab(tab: DashboardTab) {
-        uiState = uiState.copy(selectedTab = tab)
+    // ─── Navigation ──────────────────────────────────────────────────────────
+
+    fun selectStudentTab(tab: DashboardTab) {
+        uiState = uiState.copy(selectedStudentTab = tab)
+    }
+
+    fun selectTeacherTab(tab: TeacherTab) {
+        uiState = uiState.copy(selectedTeacherTab = tab)
     }
 
     fun openAttendance(classId: String) {
@@ -64,10 +80,11 @@ class AttendanceViewModel : ViewModel() {
         uiState = uiState.copy(selectedClassId = null)
     }
 
+    // ─── Calendar ────────────────────────────────────────────────────────────
+
     fun changeMonth(offset: Long) {
         val nextMonth = uiState.selectedMonth.plusMonths(offset)
-        val currentSelected = uiState.selectedDate
-        val adjustedDay = minOf(currentSelected.dayOfMonth, nextMonth.lengthOfMonth())
+        val adjustedDay = minOf(uiState.selectedDate.dayOfMonth, nextMonth.lengthOfMonth())
         uiState = uiState.copy(
             selectedMonth = nextMonth,
             selectedDate = LocalDate.of(nextMonth.year, nextMonth.month, adjustedDay)
@@ -81,17 +98,41 @@ class AttendanceViewModel : ViewModel() {
         )
     }
 
-    fun markAttendance(classId: String, studentId: String, present: Boolean) {
-        val classAttendance = attendanceState.getOrPut(classId) {
-            AttendanceRepository.students.associate { it.id to false }.toMutableMap()
+    // ─── Attendance ──────────────────────────────────────────────────────────
+
+    private fun attendanceKey(classId: String, date: LocalDate) = "$classId|$date"
+
+    fun markAttendance(classId: String, studentId: String, present: Boolean, date: LocalDate) {
+        val key = attendanceKey(classId, date)
+        val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
+        val classAttendance = attendanceState.getOrPut(key) {
+            AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
         }
         classAttendance[studentId] = present
-        attendanceState[classId] = classAttendance
+        attendanceState[key] = classAttendance
     }
 
-    fun attendanceFor(classId: String): Map<String, Boolean> {
-        return attendanceState.getOrPut(classId) {
-            AttendanceRepository.students.associate { it.id to false }.toMutableMap()
+    fun markAllPresent(classId: String, date: LocalDate) {
+        val key = attendanceKey(classId, date)
+        val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
+        val classAttendance = attendanceState.getOrPut(key) {
+            AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
+        }
+        AttendanceRepository.studentsInSection(section).forEach { classAttendance[it.id] = true }
+        attendanceState[key] = classAttendance
+    }
+
+    fun attendanceFor(classId: String, date: LocalDate): Map<String, Boolean> {
+        val key = attendanceKey(classId, date)
+        val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
+        return attendanceState.getOrPut(key) {
+            AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
         }
     }
+
+    fun presentCount(classId: String, date: LocalDate): Int =
+        attendanceFor(classId, date).values.count { it }
+
+    fun absentCount(classId: String, date: LocalDate): Int =
+        attendanceFor(classId, date).values.count { !it }
 }
