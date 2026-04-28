@@ -151,7 +151,7 @@ private fun buildDayTimeline(
         classMap[time]?.let { result.add(TimelineEntry.ClassEntry(it)) }
         freeMap[time]?.let { fp ->
             val duration = parseDurationMinutes(fp.startTime, fp.endTime)
-            result.add(TimelineEntry.FreeEntry(fp, AttendanceRepository.suggestionsFor(null, duration)))
+            result.add(TimelineEntry.FreeEntry(fp, AttendanceRepository.suggestionsFor(duration)))
         }
     }
     return result
@@ -311,7 +311,7 @@ private fun WeekendPlanCard() {
             Text("No classes today. Use this time to catch up on studies or relax.",
                 color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(4.dp))
-            AttendanceRepository.suggestionsFor(null, 60).forEach { ActivityCard(it) }
+            AttendanceRepository.suggestionsFor(60).forEach { ActivityCard(it) }
         }
     }
 }

@@ -8,25 +8,47 @@ data class Student(
     val serialNumber: Int,
     val id: String,
     val name: String,
-    val classSection: String   // e.g. "10-A"
+    val classSection: String,
+    // Extended profile
+    val rollNumber: String = "",
+    val dateOfBirth: String = "",
+    val gender: String = "",
+    val bloodGroup: String = "",
+    val address: String = "",
+    val parentName: String = "",
+    val parentPhone: String = "",
+    val parentOccupation: String = "",
+    val sportsHouse: String = "",
+    val sports: String = "",
+    val busRoute: String = "",
+    val admissionYear: String = "2022"
 )
 
 data class Teacher(
     val id: String,
     val name: String,
-    val subject: String        // primary subject they teach
+    val subject: String,
+    // Extended profile
+    val age: Int = 0,
+    val qualification: String = "",
+    val experience: String = "",
+    val phone: String = "",
+    val email: String = "",
+    val classTeacherOf: String = "",   // e.g. "10-A" or "" if not a class teacher
+    val subjectsTaught: List<String> = emptyList(),
+    val joinYear: String = ""
 )
 
 data class ClassSchedule(
     val id: String,
     val subject: String,
-    val classSection: String,  // e.g. "10-A", "10-B"
+    val classSection: String,
     val dayOfWeek: DayOfWeek,
     val startTime: String,
     val endTime: String,
     val teacherId: String,
     val room: String,
-    val periodNumber: Int      // 1st period, 2nd period, etc.
+    val periodNumber: Int
 )
 
 data class LoginResult(
@@ -39,11 +61,11 @@ data class LoginResult(
 enum class UserRole { Teacher, Student }
 
 enum class StudentGoal(val label: String, val emoji: String, val description: String) {
-    Engineering("Engineering",      "⚙️",  "Focus on Math, Physics & CS"),
-    Medicine   ("Medicine",         "🩺",  "Focus on Biology, Chemistry & Physics"),
-    Arts       ("Arts & Humanities","🎨",  "Focus on English, History & Literature"),
-    Commerce   ("Commerce",         "📊",  "Focus on Math, Economics & Accounts"),
-    Research   ("Research & Science","🔬", "Focus on all sciences & analytical skills")
+    Engineering("Engineering",       "⚙️",  "Focus on Math, Physics & CS"),
+    Medicine   ("Medicine",          "🩺",  "Focus on Biology, Chemistry & Physics"),
+    Arts       ("Arts & Humanities", "🎨",  "Focus on English, History & Literature"),
+    Commerce   ("Commerce",          "📊",  "Focus on Math, Economics & Accounts"),
+    Research   ("Research & Science","🔬",  "Focus on all sciences & analytical skills")
 }
 
 enum class DashboardTab(val label: String) {
@@ -86,5 +108,6 @@ data class AppUiState(
     val selectedMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
     val selectedClassId: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val snackbarMessage: String? = null
 )

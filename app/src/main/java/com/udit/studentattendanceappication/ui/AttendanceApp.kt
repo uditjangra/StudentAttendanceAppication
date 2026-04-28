@@ -9,7 +9,6 @@ import com.udit.studentattendanceappication.ui.model.UserRole
 fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
     val state = viewModel.uiState
 
-    // 1. Not logged in
     if (state.loginResult == null) {
         LoginScreen(errorMessage = state.errorMessage, onLogin = viewModel::login)
         return
@@ -18,28 +17,22 @@ fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
     val loginResult = state.loginResult ?: return
     val isTeacher = loginResult.role == UserRole.Teacher
 
-    // 3. Attendance screen (teacher only)
     if (state.selectedClassId != null) {
         val classInfo = AttendanceRepository.schedule.first { it.id == state.selectedClassId }
         val date = state.selectedDate
         val sectionStudents = AttendanceRepository.studentsInSection(classInfo.classSection)
         AttendanceScreen(
-            classInfo = classInfo,
-            date = date,
-            sectionStudents = sectionStudents,
+            classInfo = classInfo, date = date, sectionStudents = sectionStudents,
             attendance = viewModel.attendanceFor(classInfo.id, date),
             presentCount = viewModel.presentCount(classInfo.id, date),
             absentCount = viewModel.absentCount(classInfo.id, date),
-            onToggleAttendance = { studentId, present ->
-                viewModel.markAttendance(classInfo.id, studentId, present, date)
-            },
+            onToggleAttendance = { studentId, present -> viewModel.markAttendance(classInfo.id, studentId, present, date) },
             onMarkAllPresent = { viewModel.markAllPresent(classInfo.id, date) },
             onBack = viewModel::closeAttendance
         )
         return
     }
 
-    // 4. Filter schedule for the selected day
     val selectedDayClasses = AttendanceRepository.schedule.filter { cls ->
         cls.dayOfWeek == state.selectedDate.dayOfWeek && when {
             isTeacher -> cls.teacherId == loginResult.userId
@@ -49,27 +42,20 @@ fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
 
     val weekDates = datesForWeek(state.selectedDate)
 
-    // 5. Route to correct dashboard
     if (isTeacher) {
         TeacherDashboardScreen(
-            uiState = state,
-            classes = selectedDayClasses,
-            weekDates = weekDates,
-            onSelectTab = viewModel::selectTeacherTab,
-            onLogout = viewModel::logout,
-            onChangeMonth = viewModel::changeMonth,
-            onSelectDate = viewModel::selectDate,
-            onTakeAttendance = viewModel::openAttendance
+            uiState = state, classes = selectedDayClasses, weekDates = weekDates,
+            onSelectTab = viewModel::selectTeacherTab, onLogout = viewModel::logout,
+            onChangeMonth = viewModel::changeMonth, onSelectDate = viewModel::selectDate,
+            onTakeAttendance = viewModel::openAttendance,
+            onShowSnackbar = viewModel::showSnackbar
         )
     } else {
         StudentDashboardScreen(
-            uiState = state,
-            classes = selectedDayClasses,
-            weekDates = weekDates,
-            onSelectTab = viewModel::selectStudentTab,
-            onLogout = viewModel::logout,
-            onChangeMonth = viewModel::changeMonth,
-            onSelectDate = viewModel::selectDate
+            uiState = state, classes = selectedDayClasses, weekDates = weekDates,
+            onSelectTab = viewModel::selectStudentTab, onLogout = viewModel::logout,
+            onChangeMonth = viewModel::changeMonth, onSelectDate = viewModel::selectDate,
+            onShowSnackbar = viewModel::showSnackbar
         )
     }
 }

@@ -18,7 +18,6 @@ class AttendanceViewModel : ViewModel() {
 
     var uiState by mutableStateOf(AppUiState())
         private set
-
     // Key: "classId|date" -> Map<studentId, Boolean>
     private val attendanceState = mutableStateMapOf<String, MutableMap<String, Boolean>>()
 
@@ -132,6 +131,14 @@ class AttendanceViewModel : ViewModel() {
 
     fun presentCount(classId: String, date: LocalDate): Int =
         attendanceFor(classId, date).values.count { it }
+
+    fun dismissSnackbar() {
+        uiState = uiState.copy(snackbarMessage = null)
+    }
+
+    fun showSnackbar(message: String) {
+        uiState = uiState.copy(snackbarMessage = message)
+    }
 
     fun absentCount(classId: String, date: LocalDate): Int =
         attendanceFor(classId, date).values.count { !it }
