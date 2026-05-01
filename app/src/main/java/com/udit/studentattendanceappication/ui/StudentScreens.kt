@@ -239,7 +239,7 @@ private fun FreePeriodCard(freePeriod: FreePeriod, suggestions: List<ActivitySug
                     }
                     Column {
                         Text(label, fontWeight = FontWeight.SemiBold, color = SchoolGreen)
-                        Text("${freePeriod.startTime} – ${freePeriod.endTime} • $duration min",
+                Text("${freePeriod.startTime} - ${freePeriod.endTime} • $duration min",
                             style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                     }
                 }

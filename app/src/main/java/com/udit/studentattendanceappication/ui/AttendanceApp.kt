@@ -9,6 +9,12 @@ import com.udit.studentattendanceappication.ui.model.UserRole
 fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
     val state = viewModel.uiState
 
+    // Unit I — Splash Screen using LaunchedEffect
+    if (viewModel.showSplash) {
+        SplashScreen(onFinished = viewModel::splashFinished)
+        return
+    }
+
     if (state.loginResult == null) {
         LoginScreen(errorMessage = state.errorMessage, onLogin = viewModel::login)
         return
@@ -26,7 +32,9 @@ fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
             attendance = viewModel.attendanceFor(classInfo.id, date),
             presentCount = viewModel.presentCount(classInfo.id, date),
             absentCount = viewModel.absentCount(classInfo.id, date),
-            onToggleAttendance = { studentId, present -> viewModel.markAttendance(classInfo.id, studentId, present, date) },
+            onToggleAttendance = { studentId, present ->
+                viewModel.markAttendance(classInfo.id, studentId, present, date)
+            },
             onMarkAllPresent = { viewModel.markAllPresent(classInfo.id, date) },
             onBack = viewModel::closeAttendance
         )

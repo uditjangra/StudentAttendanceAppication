@@ -18,68 +18,55 @@ class AttendanceViewModel : ViewModel() {
 
     var uiState by mutableStateOf(AppUiState())
         private set
+
+    // Splash: starts true, set false after splash finishes
+    var showSplash by mutableStateOf(true)
+        private set
+
     // Key: "classId|date" -> Map<studentId, Boolean>
     private val attendanceState = mutableStateMapOf<String, MutableMap<String, Boolean>>()
 
-    // ─── Auth ────────────────────────────────────────────────────────────────
+    fun splashFinished() { showSplash = false }
+
+    // ── Auth ──────────────────────────────────────────────────────────────────
 
     fun login(userId: String, password: String) {
         if (password != "123") {
             uiState = uiState.copy(errorMessage = "Invalid password. Use 123.")
             return
         }
-
         val teacher = AttendanceRepository.teachers.firstOrNull { it.id == userId }
         if (teacher != null) {
             uiState = AppUiState(
                 loginResult = LoginResult(UserRole.Teacher, teacher.id, teacher.name),
-                selectedDate = LocalDate.now(),
-                selectedMonth = YearMonth.now()
+                selectedDate = LocalDate.now(), selectedMonth = YearMonth.now()
             )
             return
         }
-
         val student = AttendanceRepository.students.firstOrNull { it.id == userId }
         if (student != null) {
             uiState = AppUiState(
                 loginResult = LoginResult(
-                    role = UserRole.Student,
-                    userId = student.id,
-                    displayName = student.name,
-                    classSection = student.classSection
+                    role = UserRole.Student, userId = student.id,
+                    displayName = student.name, classSection = student.classSection
                 ),
-                selectedDate = LocalDate.now(),
-                selectedMonth = YearMonth.now()
+                selectedDate = LocalDate.now(), selectedMonth = YearMonth.now()
             )
             return
         }
-
         uiState = uiState.copy(errorMessage = "User ID not found.")
     }
 
-    fun logout() {
-        uiState = AppUiState()
-    }
+    fun logout() { uiState = AppUiState() }
 
-    // ─── Navigation ──────────────────────────────────────────────────────────
+    // ── Navigation ────────────────────────────────────────────────────────────
 
-    fun selectStudentTab(tab: DashboardTab) {
-        uiState = uiState.copy(selectedStudentTab = tab)
-    }
+    fun selectStudentTab(tab: DashboardTab) { uiState = uiState.copy(selectedStudentTab = tab) }
+    fun selectTeacherTab(tab: TeacherTab)   { uiState = uiState.copy(selectedTeacherTab = tab) }
+    fun openAttendance(classId: String)     { uiState = uiState.copy(selectedClassId = classId) }
+    fun closeAttendance()                   { uiState = uiState.copy(selectedClassId = null) }
 
-    fun selectTeacherTab(tab: TeacherTab) {
-        uiState = uiState.copy(selectedTeacherTab = tab)
-    }
-
-    fun openAttendance(classId: String) {
-        uiState = uiState.copy(selectedClassId = classId)
-    }
-
-    fun closeAttendance() {
-        uiState = uiState.copy(selectedClassId = null)
-    }
-
-    // ─── Calendar ────────────────────────────────────────────────────────────
+    // ── Calendar ──────────────────────────────────────────────────────────────
 
     fun changeMonth(offset: Long) {
         val nextMonth = uiState.selectedMonth.plusMonths(offset)
@@ -91,34 +78,32 @@ class AttendanceViewModel : ViewModel() {
     }
 
     fun selectDate(date: LocalDate) {
-        uiState = uiState.copy(
-            selectedDate = date,
-            selectedMonth = YearMonth.from(date)
-        )
+        uiState = uiState.copy(selectedDate = date, selectedMonth = YearMonth.from(date))
     }
 
-    // ─── Attendance ──────────────────────────────────────────────────────────
+    // ── Attendance ────────────────────────────────────────────────────────────
 
     private fun attendanceKey(classId: String, date: LocalDate) = "$classId|$date"
 
     fun markAttendance(classId: String, studentId: String, present: Boolean, date: LocalDate) {
         val key = attendanceKey(classId, date)
         val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
-        val classAttendance = attendanceState.getOrPut(key) {
+        val map = attendanceState.getOrPut(key) {
             AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
         }
-        classAttendance[studentId] = present
-        attendanceState[key] = classAttendance
+        map[studentId] = present
+        attendanceState[key] = map
     }
 
     fun markAllPresent(classId: String, date: LocalDate) {
         val key = attendanceKey(classId, date)
         val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
-        val classAttendance = attendanceState.getOrPut(key) {
+        val map = attendanceState.getOrPut(key) {
             AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
         }
-        AttendanceRepository.studentsInSection(section).forEach { classAttendance[it.id] = true }
-        attendanceState[key] = classAttendance
+        AttendanceRepository.studentsInSection(section).forEach { map[it.id] = true }
+        attendanceState[key] = map
+        showSnackbar("All students marked present")
     }
 
     fun attendanceFor(classId: String, date: LocalDate): Map<String, Boolean> {
@@ -132,14 +117,11 @@ class AttendanceViewModel : ViewModel() {
     fun presentCount(classId: String, date: LocalDate): Int =
         attendanceFor(classId, date).values.count { it }
 
-    fun dismissSnackbar() {
-        uiState = uiState.copy(snackbarMessage = null)
-    }
-
-    fun showSnackbar(message: String) {
-        uiState = uiState.copy(snackbarMessage = message)
-    }
-
     fun absentCount(classId: String, date: LocalDate): Int =
         attendanceFor(classId, date).values.count { !it }
+
+    // ── Snackbar ──────────────────────────────────────────────────────────────
+
+    fun showSnackbar(message: String) { uiState = uiState.copy(snackbarMessage = message) }
+    fun dismissSnackbar()             { uiState = uiState.copy(snackbarMessage = null) }
 }
