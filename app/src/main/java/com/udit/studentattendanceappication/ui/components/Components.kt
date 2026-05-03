@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -72,16 +71,15 @@ fun EmptyStateCard(title: String, subtitle: String) {
     }
 }
 
-// ── Avatar circle with initials ───────────────────────────────────────────────
+// AvatarCircle — shows the first letter of a name inside a green circle
+// Used as a profile photo placeholder throughout the app
 @Composable
 fun AvatarCircle(name: String, size: Dp) {
     Box(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(
-                Brush.linearGradient(listOf(SchoolGreen, SchoolGreenLight))
-            ),
+            .background(SchoolGreen),   // plain solid green background
         contentAlignment = Alignment.Center
     ) {
         Text(

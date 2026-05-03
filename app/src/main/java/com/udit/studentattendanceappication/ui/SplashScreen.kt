@@ -1,7 +1,5 @@
 package com.udit.studentattendanceappication.ui
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,13 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -35,35 +28,25 @@ import com.udit.studentattendanceappication.ui.theme.SchoolGreen
 import kotlinx.coroutines.delay
 
 /**
- * Splash Screen — shown for 2.5 seconds when the app first opens.
+ * SplashScreen — the first screen shown when the app opens.
  *
- * Demonstrates LaunchedEffect: a side-effect that runs once when this
- * composable enters the screen. It waits 2.5 seconds then calls onFinished()
- * to navigate to the login screen.
+ * It shows the school logo and app name for 2.5 seconds,
+ * then automatically navigates to the login screen.
  *
- * Also demonstrates:
- * - animateFloatAsState: smoothly animates the alpha (opacity) from 0 to 1
- * - CircularProgressIndicator: the spinning loading indicator at the bottom
+ * LaunchedEffect is used here to run a timed action (delay + navigate).
+ * LaunchedEffect(key1 = true) means: run this block once when the screen appears.
+ * Inside the block, delay(2500) waits 2.5 seconds, then onFinished() is called.
+ *
+ * CircularProgressIndicator shows a spinning loading ring at the bottom.
  */
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
 
-    // Controls whether the fade-in animation has started
-    var startAnimation by remember { mutableStateOf(false) }
-
-    // Animates alpha from 0f → 1f over 1 second when startAnimation becomes true
-    val alpha by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000),
-        label = "splash_fade"
-    )
-
-    // LaunchedEffect runs this block once when the composable first appears.
-    // key1 = true means it never re-runs (only runs on first composition).
+    // LaunchedEffect runs this coroutine block once when the composable first appears.
+    // After 2.5 seconds it calls onFinished() to go to the login screen.
     LaunchedEffect(key1 = true) {
-        startAnimation = true   // trigger the fade-in animation
-        delay(2500)             // wait 2.5 seconds
-        onFinished()            // navigate to login
+        delay(2500)     // wait 2.5 seconds
+        onFinished()    // navigate to login
     }
 
     // Full-screen green background
@@ -73,9 +56,7 @@ fun SplashScreen(onFinished: () -> Unit) {
             .background(SchoolGreen),
         contentAlignment = Alignment.Center
     ) {
-        // Apply the animated alpha to the entire content
         Column(
-            modifier = Modifier.alpha(alpha),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

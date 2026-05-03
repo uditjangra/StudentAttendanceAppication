@@ -1,6 +1,7 @@
 package com.udit.studentattendanceappication.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,6 +89,8 @@ fun StudentDashboardScreen(
     val freePeriods = AttendanceRepository.freePeriodsByDay(uiState.selectedDate.dayOfWeek)
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // LaunchedEffect watches snackbarMessage — whenever it changes to a non-null value,
+    // it shows the snackbar. This is the standard Compose way to trigger one-time actions.
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { snackbarHostState.showSnackbar(it) }
     }
@@ -110,8 +113,14 @@ fun StudentDashboardScreen(
                     )
                 },
                 actions = {
-                    AvatarCircle(name = loginResult.displayName, size = 36.dp)
-                    Spacer(Modifier.width(16.dp))
+                    // Tapping the avatar navigates to the Profile tab
+                    Box(
+                        modifier = Modifier
+                            .clickable { onSelectTab(DashboardTab.Profile) }
+                            .padding(end = 16.dp)
+                    ) {
+                        AvatarCircle(name = loginResult.displayName, size = 36.dp)
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CardWhite)
             )

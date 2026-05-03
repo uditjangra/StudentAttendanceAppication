@@ -90,7 +90,8 @@ fun TeacherDashboardScreen(
     val loginResult = uiState.loginResult ?: return
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Show snackbar when message changes
+    // LaunchedEffect watches snackbarMessage — whenever it changes to a non-null value,
+    // it shows the snackbar. This is the standard Compose way to trigger one-time actions.
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { snackbarHostState.showSnackbar(it) }
     }
@@ -112,8 +113,14 @@ fun TeacherDashboardScreen(
                     )
                 },
                 actions = {
-                    AvatarCircle(name = loginResult.displayName, size = 36.dp)
-                    Spacer(Modifier.width(16.dp))
+                    // Tapping the avatar navigates to the Profile tab
+                    Box(
+                        modifier = Modifier
+                            .clickable { onSelectTab(TeacherTab.Profile) }
+                            .padding(end = 16.dp)
+                    ) {
+                        AvatarCircle(name = loginResult.displayName, size = 36.dp)
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CardWhite)
             )

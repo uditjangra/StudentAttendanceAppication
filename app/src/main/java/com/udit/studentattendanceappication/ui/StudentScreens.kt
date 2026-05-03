@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.sp
 import com.udit.studentattendanceappication.ui.components.EmptyStateCard
 import com.udit.studentattendanceappication.ui.components.SoftBadge
 import com.udit.studentattendanceappication.ui.data.AttendanceRepository
-import com.udit.studentattendanceappication.ui.model.ActivityCategory
 import com.udit.studentattendanceappication.ui.model.ActivitySuggestion
 import com.udit.studentattendanceappication.ui.model.ClassSchedule
 import com.udit.studentattendanceappication.ui.model.FreePeriod
@@ -111,21 +110,25 @@ fun MyPlanScreen(
         if (isWeekend) {
             item { WeekendPlanCard() }
         } else {
-            val timeline = buildDayTimeline(classes, freePeriods)
-            if (timeline.isEmpty()) {
+            // Build a combined list of classes and free periods sorted by time
+            val dayItems = buildDayItems(classes, freePeriods)
+            if (dayItems.isEmpty()) {
                 item {
                     EmptyStateCard("No schedule today", "Enjoy your day or use it for self-study.")
                 }
             } else {
-                items(timeline) { entry ->
-                    when (entry) {
-                        is TimelineEntry.ClassEntry -> PlanClassCard(
-                            classInfo = entry.classInfo,
-                            colorIndex = classes.indexOf(entry.classInfo) % SubjectColors.size
+                items(dayItems) { item ->
+                    if (item.isClass) {
+                        // Show a class card
+                        PlanClassCard(
+                            classInfo = item.classInfo!!,
+                            colorIndex = classes.indexOf(item.classInfo) % SubjectColors.size
                         )
-                        is TimelineEntry.FreeEntry -> FreePeriodCard(
-                            freePeriod = entry.freePeriod,
-                            suggestions = entry.suggestions
+                    } else {
+                        // Show a free period card with activity suggestions
+                        FreePeriodCard(
+                            freePeriod = item.freePeriod!!,
+                            suggestions = item.suggestions
                         )
                     }
                 }
@@ -134,27 +137,37 @@ fun MyPlanScreen(
     }
 }
 
-private sealed class TimelineEntry {
-    data class ClassEntry(val classInfo: ClassSchedule) : TimelineEntry()
-    data class FreeEntry(val freePeriod: FreePeriod, val suggestions: List<ActivitySuggestion>) : TimelineEntry()
-}
+// DayItem — represents one slot in the student's day (either a class or a free period)
+// Using a simple data class instead of a sealed class makes it easier to understand
+private data class DayItem(
+    val startTime: String,          // used for sorting
+    val isClass: Boolean,           // true = class, false = free period
+    val classInfo: ClassSchedule?,  // filled when isClass = true
+    val freePeriod: FreePeriod?,    // filled when isClass = false
+    val suggestions: List<ActivitySuggestion> = emptyList()
+)
 
-private fun buildDayTimeline(
+// buildDayItems — merges classes and free periods into one sorted list
+private fun buildDayItems(
     classes: List<ClassSchedule>,
     freePeriods: List<FreePeriod>
-): List<TimelineEntry> {
-    val result = mutableListOf<TimelineEntry>()
-    val classMap = classes.sortedBy { it.startTime }.associateBy { it.startTime }
-    val freeMap = freePeriods.sortedBy { it.startTime }.associateBy { it.startTime }
-    val allTimes = (classMap.keys + freeMap.keys).toSortedSet()
-    for (time in allTimes) {
-        classMap[time]?.let { result.add(TimelineEntry.ClassEntry(it)) }
-        freeMap[time]?.let { fp ->
-            val duration = parseDurationMinutes(fp.startTime, fp.endTime)
-            result.add(TimelineEntry.FreeEntry(fp, AttendanceRepository.suggestionsFor(duration)))
-        }
+): List<DayItem> {
+    val result = mutableListOf<DayItem>()
+
+    // Add all classes as DayItems
+    for (cls in classes) {
+        result.add(DayItem(startTime = cls.startTime, isClass = true, classInfo = cls, freePeriod = null))
     }
-    return result
+
+    // Add all free periods as DayItems
+    for (fp in freePeriods) {
+        val duration = parseDurationMinutes(fp.startTime, fp.endTime)
+        val suggestions = AttendanceRepository.suggestionsFor(duration)
+        result.add(DayItem(startTime = fp.startTime, isClass = false, classInfo = null, freePeriod = fp, suggestions = suggestions))
+    }
+
+    // Sort everything by start time so the day flows in order
+    return result.sortedBy { it.startTime }
 }
 
 private fun parseDurationMinutes(start: String, end: String): Int {
@@ -258,9 +271,11 @@ private fun FreePeriodCard(freePeriod: FreePeriod, suggestions: List<ActivitySug
 
 @Composable
 private fun ActivityCard(suggestion: ActivitySuggestion) {
-    val categoryColor = Color(suggestion.category.color)
+    // Use the color stored directly in the suggestion
+    val categoryColor = Color(suggestion.categoryColor)
     Row(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(categoryColor.copy(alpha = 0.08f))
             .padding(12.dp),
@@ -291,7 +306,7 @@ private fun ActivityCard(suggestion: ActivitySuggestion) {
                     .background(categoryColor.copy(alpha = 0.12f))
                     .padding(horizontal = 7.dp, vertical = 2.dp)
             ) {
-                Text(suggestion.category.label, style = MaterialTheme.typography.labelSmall,
+                Text(suggestion.category, style = MaterialTheme.typography.labelSmall,
                     color = categoryColor, fontWeight = FontWeight.SemiBold)
             }
         }

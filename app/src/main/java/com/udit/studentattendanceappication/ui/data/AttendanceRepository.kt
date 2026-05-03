@@ -1,6 +1,5 @@
 package com.udit.studentattendanceappication.ui.data
 
-import com.udit.studentattendanceappication.ui.model.ActivityCategory
 import com.udit.studentattendanceappication.ui.model.ActivitySuggestion
 import com.udit.studentattendanceappication.ui.model.ClassSchedule
 import com.udit.studentattendanceappication.ui.model.FreePeriod
@@ -261,16 +260,17 @@ object AttendanceRepository {
     fun freePeriodsByDay(dayOfWeek: DayOfWeek): List<FreePeriod> = weekdayFreePeriods.filter { it.dayOfWeek == dayOfWeek }
 
     val activitySuggestions = listOf(
-        ActivitySuggestion("Solve Practice Problems",    "Work through 5 Maths or Physics problems from your textbook.", 20, ActivityCategory.Practice, emptyList()),
-        ActivitySuggestion("Review Today's Notes",       "Go through notes from your last class and highlight key points.", 20, ActivityCategory.Revision, emptyList()),
-        ActivitySuggestion("Quick Stretch Break",        "Step away, stretch, and reset your focus.", 20, ActivityCategory.Wellness, emptyList()),
-        ActivitySuggestion("Plan Your Evening Study",    "Write down what you want to cover in tonight's study session.", 20, ActivityCategory.Study, emptyList()),
-        ActivitySuggestion("Mindful Breathing",          "5 minutes of deep breathing to reduce stress and refocus.", 20, ActivityCategory.Wellness, emptyList()),
-        ActivitySuggestion("Lunch Break Reading",        "Use your lunch break to read something you enjoy.", 40, ActivityCategory.Reading, emptyList()),
-        ActivitySuggestion("Peer Discussion",            "Discuss a topic from today's class with a classmate.", 40, ActivityCategory.Study, emptyList()),
-        ActivitySuggestion("Vocabulary Builder",         "Learn 10 new words with meanings and use them in sentences.", 20, ActivityCategory.Study, emptyList()),
-        ActivitySuggestion("Revise Formulas",            "Go through your formula sheet for any subject and test yourself.", 20, ActivityCategory.Revision, emptyList()),
-        ActivitySuggestion("Read a Chapter",             "Continue reading your current book or a recommended text.", 40, ActivityCategory.Reading, emptyList())
+        // Each suggestion has: title, description, duration in minutes, category name, category color
+        ActivitySuggestion("Solve Practice Problems",    "Work through 5 Maths or Physics problems from your textbook.", 20, "Practice", 0xFF4CAF7A),
+        ActivitySuggestion("Review Today's Notes",       "Go through notes from your last class and highlight key points.", 20, "Revision", 0xFFF2A65A),
+        ActivitySuggestion("Quick Stretch Break",        "Step away, stretch, and reset your focus.", 20, "Wellness", 0xFFE66B6B),
+        ActivitySuggestion("Plan Your Evening Study",    "Write down what you want to cover in tonight's study session.", 20, "Study", 0xFF3C8D84),
+        ActivitySuggestion("Mindful Breathing",          "5 minutes of deep breathing to reduce stress and refocus.", 20, "Wellness", 0xFFE66B6B),
+        ActivitySuggestion("Lunch Break Reading",        "Use your lunch break to read something you enjoy.", 40, "Reading", 0xFF7B68EE),
+        ActivitySuggestion("Peer Discussion",            "Discuss a topic from today's class with a classmate.", 40, "Study", 0xFF3C8D84),
+        ActivitySuggestion("Vocabulary Builder",         "Learn 10 new words with meanings and use them in sentences.", 20, "Study", 0xFF3C8D84),
+        ActivitySuggestion("Revise Formulas",            "Go through your formula sheet for any subject and test yourself.", 20, "Revision", 0xFFF2A65A),
+        ActivitySuggestion("Read a Chapter",             "Continue reading your current book or a recommended text.", 40, "Reading", 0xFF7B68EE)
     )
 
     fun suggestionsFor(durationMinutes: Int): List<ActivitySuggestion> =

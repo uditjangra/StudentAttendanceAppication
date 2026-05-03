@@ -117,12 +117,19 @@ fun CalendarScreen(
                 }
             }
 
-            // Calendar grid — vertical rows of weeks
+            // Calendar grid — draws the month as rows of weeks (Mon to Sun)
+            //
+            // How it works:
+            // 1. Find what day of the week the 1st of the month falls on
+            //    e.g. if May 1 is a Thursday, startOffset = 3 (Mon=0, Tue=1, Wed=2, Thu=3)
+            // 2. Calculate how many week rows we need to show the whole month
+            // 3. For each cell, calculate which day number it represents
+            //    Cells before day 1 and after the last day are left empty (Spacer)
             val firstDay = selectedMonth.atDay(1)
-            val startOffset = (firstDay.dayOfWeek.value - 1) // Mon=0
+            val startOffset = (firstDay.dayOfWeek.value - 1) // Mon=0, Tue=1, ... Sun=6
             val daysInMonth = selectedMonth.lengthOfMonth()
             val totalCells = startOffset + daysInMonth
-            val weeks = (0 until ((totalCells + 6) / 7)).toList()
+            val weeks = (0 until ((totalCells + 6) / 7)).toList() // number of week rows needed
 
             items(weeks) { weekIndex ->
                 Row(modifier = Modifier.fillMaxWidth()) {
