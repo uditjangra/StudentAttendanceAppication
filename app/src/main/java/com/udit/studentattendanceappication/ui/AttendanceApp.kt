@@ -58,6 +58,7 @@ fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
                 viewModel.markAttendance(classInfo.id, studentId, present, date)
             },
             onMarkAllPresent = { viewModel.markAllPresent(classInfo.id, date) },
+            onShowSnackbar = viewModel::showSnackbar,
             onBack = viewModel::closeAttendance
         )
         return

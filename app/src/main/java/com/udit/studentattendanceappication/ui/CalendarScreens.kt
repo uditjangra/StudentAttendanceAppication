@@ -34,12 +34,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -322,10 +329,30 @@ fun AttendanceScreen(
     absentCount: Int,
     onToggleAttendance: (String, Boolean) -> Unit,
     onMarkAllPresent: () -> Unit,
+    onShowSnackbar: (String) -> Unit,   // added so individual toggles can show feedback
     onBack: () -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // LaunchedEffect shows the snackbar whenever onShowSnackbar is called
+    // We use a local state to bridge the callback into a LaunchedEffect
+    var snackMsg by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(snackMsg) {
+        snackMsg?.let {
+            snackbarHostState.showSnackbar(it)
+            snackMsg = null
+        }
+    }
+
+    // Wrap onShowSnackbar to update local state
+    val showSnackbarLocal: (String) -> Unit = { msg ->
+        onShowSnackbar(msg)
+        snackMsg = msg
+    }
+
     Scaffold(
         containerColor = ContentBg,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -351,7 +378,15 @@ fun AttendanceScreen(
                 Box(Modifier.fillMaxWidth().height(1.dp).background(DividerColor))
             }
             items(sectionStudents) { student ->
-                StudentAttendanceRow(student = student, present = attendance[student.id] == true, onToggle = { onToggleAttendance(student.id, it) })
+                StudentAttendanceRow(
+                    student = student,
+                    present = attendance[student.id] == true,
+                    onToggle = { isPresent ->
+                        onToggleAttendance(student.id, isPresent)
+                        val status = if (isPresent) "marked Present" else "marked Absent"
+                        showSnackbarLocal("${student.name} $status")
+                    }
+                )
             }
         }
     }
@@ -395,7 +430,19 @@ private fun AttendanceSummaryCard(presentCount: Int, absentCount: Int, totalStud
 @Composable
 private fun StudentAttendanceRow(student: Student, present: Boolean, onToggle: (Boolean) -> Unit) {
     val statusColor = if (present) AttendancePresent else AttendanceAbsent
-    Row(modifier = Modifier.fillMaxWidth().background(CardWhite).padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    // Row background turns light green when present, light red when absent
+    val rowBg = if (present) AttendancePresent.copy(alpha = 0.07f) else CardWhite
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(rowBg)
+            // Tapping anywhere on the row toggles the student (flips current state)
+            .clickable { onToggle(!present) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(student.serialNumber.toString().padStart(2,'0'), color = TextMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(32.dp))
         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             AvatarCircle(name = student.name, size = 36.dp)
@@ -406,8 +453,16 @@ private fun StudentAttendanceRow(student: Student, present: Boolean, onToggle: (
             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
             Text(if (present) "Present" else "Absent", color = statusColor, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
         }
-        Switch(checked = present, onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = SchoolGreen, uncheckedThumbColor = Color.White, uncheckedTrackColor = AttendanceAbsent.copy(alpha = 0.5f)))
+        Switch(
+            checked = present,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = SchoolGreen,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = AttendanceAbsent.copy(alpha = 0.5f)
+            )
+        )
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(DividerColor))
 }
