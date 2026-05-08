@@ -9,14 +9,20 @@ import java.time.DayOfWeek
 
 object AttendanceRepository {
 
-    // ── Teachers (only 10000 is the demo login) ───────────────────────────────
+    // ── Teachers (Demo) ───────────────────────────────────────────────────────
+    // Each teacher specialises in ONE subject area only.
+    // Teacher 10000 → Mathematics only
+    // Teacher 10001 → Science (Physics, Chemistry, Biology)
+    // Teacher 10002 → English (Language + Literature)
+    // Teacher 10003 → Social Studies (History & Civics, Geography)
+    // Teacher 10004 → Computer Science + Physical Education
     val teachers = listOf(
         Teacher(
             id = "10000", name = "Aarav Mehta", subject = "Mathematics",
             age = 38, qualification = "M.Sc. Mathematics, B.Ed",
             experience = "14 years", phone = "+91 98765 43210",
             email = "aarav.mehta@school.edu", classTeacherOf = "10-A",
-            subjectsTaught = listOf("Mathematics", "Applied Mathematics"),
+            subjectsTaught = listOf("Mathematics"),
             joinYear = "2010"
         ),
         Teacher(
@@ -50,6 +56,14 @@ object AttendanceRepository {
             email = "suresh.pillai@school.edu", classTeacherOf = "",
             subjectsTaught = listOf("Computer Science", "Physical Education"),
             joinYear = "2016"
+        ),
+        Teacher(
+            id = "10005", name = "Kavita Sharma", subject = "Art & Craft",
+            age = 30, qualification = "B.F.A., B.Ed",
+            experience = "6 years", phone = "+91 98765 43215",
+            email = "kavita.sharma@school.edu", classTeacherOf = "",
+            subjectsTaught = listOf("Art & Craft"),
+            joinYear = "2018"
         )
     )
 
@@ -179,73 +193,98 @@ object AttendanceRepository {
             sports = "Hockey, Wrestling", busRoute = "Route 5", admissionYear = "2022")
     )
 
-    // ── School Timetable ──────────────────────────────────────────────────────
+    // ── School Timetable ─────────────────────────────────────────────────────
+    // Student sees 7 periods per day:
+    //   Periods 1-5: Academic subjects (Mathematics, Science, English, Social Studies, CS)
+    //   Period 6:    Physical Education (games) — taught by 10004
+    //   Period 7:    Art & Craft — taught by 10005
+    //
+    // Periods: 1→09:00-09:45  2→09:55-10:40  3→10:50-11:35
+    //          LUNCH 11:35-12:15
+    //          4→12:15-13:00  5→13:10-13:55  6→14:05-14:50  7→14:55-15:40
     val schedule: List<ClassSchedule> = listOf(
-        // MONDAY
+
+        // ── MONDAY ────────────────────────────────────────────────────────────
+        // 10-A: 5 academic + PE + Art
         ClassSchedule("MON-A1","Mathematics",       "10-A",DayOfWeek.MONDAY,   "09:00","09:45","10000","Room 101",1),
         ClassSchedule("MON-A2","Physics",            "10-A",DayOfWeek.MONDAY,   "09:55","10:40","10001","Lab 1",   2),
         ClassSchedule("MON-A3","English Language",   "10-A",DayOfWeek.MONDAY,   "10:50","11:35","10002","Room 103",3),
         ClassSchedule("MON-A4","History & Civics",   "10-A",DayOfWeek.MONDAY,   "12:15","13:00","10003","Room 104",4),
         ClassSchedule("MON-A5","Computer Science",   "10-A",DayOfWeek.MONDAY,   "13:10","13:55","10004","Lab 2",   5),
-        ClassSchedule("MON-A6","Geography",          "10-A",DayOfWeek.MONDAY,   "14:05","14:50","10003","Room 104",6),
+        ClassSchedule("MON-A6","Physical Education", "10-A",DayOfWeek.MONDAY,   "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("MON-A7","Art & Craft",        "10-A",DayOfWeek.MONDAY,   "14:55","15:40","10005","Art Room",7),
+        // 10-B: 5 academic + PE + Art
         ClassSchedule("MON-B1","English Language",   "10-B",DayOfWeek.MONDAY,   "09:00","09:45","10002","Room 103",1),
         ClassSchedule("MON-B2","Mathematics",        "10-B",DayOfWeek.MONDAY,   "09:55","10:40","10000","Room 101",2),
         ClassSchedule("MON-B3","Chemistry",          "10-B",DayOfWeek.MONDAY,   "10:50","11:35","10001","Lab 1",   3),
         ClassSchedule("MON-B4","Computer Science",   "10-B",DayOfWeek.MONDAY,   "12:15","13:00","10004","Lab 2",   4),
         ClassSchedule("MON-B5","History & Civics",   "10-B",DayOfWeek.MONDAY,   "13:10","13:55","10003","Room 104",5),
         ClassSchedule("MON-B6","Physical Education", "10-B",DayOfWeek.MONDAY,   "14:05","14:50","10004","Ground",  6),
-        // TUESDAY
+        ClassSchedule("MON-B7","Art & Craft",        "10-B",DayOfWeek.MONDAY,   "14:55","15:40","10005","Art Room",7),
+
+        // ── TUESDAY ───────────────────────────────────────────────────────────
         ClassSchedule("TUE-A1","Chemistry",          "10-A",DayOfWeek.TUESDAY,  "09:00","09:45","10001","Lab 1",   1),
         ClassSchedule("TUE-A2","Mathematics",        "10-A",DayOfWeek.TUESDAY,  "09:55","10:40","10000","Room 101",2),
         ClassSchedule("TUE-A3","Biology",            "10-A",DayOfWeek.TUESDAY,  "10:50","11:35","10001","Lab 3",   3),
         ClassSchedule("TUE-A4","English Literature", "10-A",DayOfWeek.TUESDAY,  "12:15","13:00","10002","Room 103",4),
         ClassSchedule("TUE-A5","Geography",          "10-A",DayOfWeek.TUESDAY,  "13:10","13:55","10003","Room 104",5),
         ClassSchedule("TUE-A6","Physical Education", "10-A",DayOfWeek.TUESDAY,  "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("TUE-A7","Art & Craft",        "10-A",DayOfWeek.TUESDAY,  "14:55","15:40","10005","Art Room",7),
         ClassSchedule("TUE-B1","Physics",            "10-B",DayOfWeek.TUESDAY,  "09:00","09:45","10001","Lab 1",   1),
         ClassSchedule("TUE-B2","English Literature", "10-B",DayOfWeek.TUESDAY,  "09:55","10:40","10002","Room 103",2),
         ClassSchedule("TUE-B3","Mathematics",        "10-B",DayOfWeek.TUESDAY,  "10:50","11:35","10000","Room 101",3),
         ClassSchedule("TUE-B4","Biology",            "10-B",DayOfWeek.TUESDAY,  "12:15","13:00","10001","Lab 3",   4),
         ClassSchedule("TUE-B5","Computer Science",   "10-B",DayOfWeek.TUESDAY,  "13:10","13:55","10004","Lab 2",   5),
-        ClassSchedule("TUE-B6","Geography",          "10-B",DayOfWeek.TUESDAY,  "14:05","14:50","10003","Room 104",6),
-        // WEDNESDAY
+        ClassSchedule("TUE-B6","Physical Education", "10-B",DayOfWeek.TUESDAY,  "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("TUE-B7","Art & Craft",        "10-B",DayOfWeek.TUESDAY,  "14:55","15:40","10005","Art Room",7),
+
+        // ── WEDNESDAY ─────────────────────────────────────────────────────────
         ClassSchedule("WED-A1","Physics",            "10-A",DayOfWeek.WEDNESDAY,"09:00","09:45","10001","Lab 1",   1),
         ClassSchedule("WED-A2","English Literature", "10-A",DayOfWeek.WEDNESDAY,"09:55","10:40","10002","Room 103",2),
         ClassSchedule("WED-A3","Mathematics",        "10-A",DayOfWeek.WEDNESDAY,"10:50","11:35","10000","Room 101",3),
         ClassSchedule("WED-A4","Biology",            "10-A",DayOfWeek.WEDNESDAY,"12:15","13:00","10001","Lab 3",   4),
         ClassSchedule("WED-A5","Computer Science",   "10-A",DayOfWeek.WEDNESDAY,"13:10","13:55","10004","Lab 2",   5),
         ClassSchedule("WED-A6","Physical Education", "10-A",DayOfWeek.WEDNESDAY,"14:05","14:50","10004","Ground",  6),
+        ClassSchedule("WED-A7","Art & Craft",        "10-A",DayOfWeek.WEDNESDAY,"14:55","15:40","10005","Art Room",7),
         ClassSchedule("WED-B1","Mathematics",        "10-B",DayOfWeek.WEDNESDAY,"09:00","09:45","10000","Room 101",1),
         ClassSchedule("WED-B2","Chemistry",          "10-B",DayOfWeek.WEDNESDAY,"09:55","10:40","10001","Lab 1",   2),
         ClassSchedule("WED-B3","English Language",   "10-B",DayOfWeek.WEDNESDAY,"10:50","11:35","10002","Room 103",3),
         ClassSchedule("WED-B4","History & Civics",   "10-B",DayOfWeek.WEDNESDAY,"12:15","13:00","10003","Room 104",4),
         ClassSchedule("WED-B5","Biology",            "10-B",DayOfWeek.WEDNESDAY,"13:10","13:55","10001","Lab 3",   5),
-        ClassSchedule("WED-B6","Geography",          "10-B",DayOfWeek.WEDNESDAY,"14:05","14:50","10003","Room 104",6),
-        // THURSDAY
+        ClassSchedule("WED-B6","Physical Education", "10-B",DayOfWeek.WEDNESDAY,"14:05","14:50","10004","Ground",  6),
+        ClassSchedule("WED-B7","Art & Craft",        "10-B",DayOfWeek.WEDNESDAY,"14:55","15:40","10005","Art Room",7),
+
+        // ── THURSDAY ──────────────────────────────────────────────────────────
         ClassSchedule("THU-A1","English Language",   "10-A",DayOfWeek.THURSDAY, "09:00","09:45","10002","Room 103",1),
         ClassSchedule("THU-A2","History & Civics",   "10-A",DayOfWeek.THURSDAY, "09:55","10:40","10003","Room 104",2),
         ClassSchedule("THU-A3","Chemistry",          "10-A",DayOfWeek.THURSDAY, "10:50","11:35","10001","Lab 1",   3),
         ClassSchedule("THU-A4","Mathematics",        "10-A",DayOfWeek.THURSDAY, "12:15","13:00","10000","Room 101",4),
         ClassSchedule("THU-A5","Biology",            "10-A",DayOfWeek.THURSDAY, "13:10","13:55","10001","Lab 3",   5),
-        ClassSchedule("THU-A6","Computer Science",   "10-A",DayOfWeek.THURSDAY, "14:05","14:50","10004","Lab 2",   6),
+        ClassSchedule("THU-A6","Physical Education", "10-A",DayOfWeek.THURSDAY, "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("THU-A7","Art & Craft",        "10-A",DayOfWeek.THURSDAY, "14:55","15:40","10005","Art Room",7),
         ClassSchedule("THU-B1","Chemistry",          "10-B",DayOfWeek.THURSDAY, "09:00","09:45","10001","Lab 1",   1),
         ClassSchedule("THU-B2","Mathematics",        "10-B",DayOfWeek.THURSDAY, "09:55","10:40","10000","Room 101",2),
         ClassSchedule("THU-B3","English Language",   "10-B",DayOfWeek.THURSDAY, "10:50","11:35","10002","Room 103",3),
         ClassSchedule("THU-B4","Geography",          "10-B",DayOfWeek.THURSDAY, "12:15","13:00","10003","Room 104",4),
-        ClassSchedule("THU-B5","Physical Education", "10-B",DayOfWeek.THURSDAY, "13:10","13:55","10004","Ground",  5),
-        ClassSchedule("THU-B6","Computer Science",   "10-B",DayOfWeek.THURSDAY, "14:05","14:50","10004","Lab 2",   6),
-        // FRIDAY
+        ClassSchedule("THU-B5","Computer Science",   "10-B",DayOfWeek.THURSDAY, "13:10","13:55","10004","Lab 2",   5),
+        ClassSchedule("THU-B6","Physical Education", "10-B",DayOfWeek.THURSDAY, "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("THU-B7","Art & Craft",        "10-B",DayOfWeek.THURSDAY, "14:55","15:40","10005","Art Room",7),
+
+        // ── FRIDAY ────────────────────────────────────────────────────────────
         ClassSchedule("FRI-A1","Computer Science",   "10-A",DayOfWeek.FRIDAY,   "09:00","09:45","10004","Lab 2",   1),
         ClassSchedule("FRI-A2","Biology",            "10-A",DayOfWeek.FRIDAY,   "09:55","10:40","10001","Lab 3",   2),
         ClassSchedule("FRI-A3","Geography",          "10-A",DayOfWeek.FRIDAY,   "10:50","11:35","10003","Room 104",3),
         ClassSchedule("FRI-A4","Mathematics",        "10-A",DayOfWeek.FRIDAY,   "12:15","13:00","10000","Room 101",4),
         ClassSchedule("FRI-A5","English Language",   "10-A",DayOfWeek.FRIDAY,   "13:10","13:55","10002","Room 103",5),
-        ClassSchedule("FRI-A6","Physics",            "10-A",DayOfWeek.FRIDAY,   "14:05","14:50","10001","Lab 1",   6),
+        ClassSchedule("FRI-A6","Physical Education", "10-A",DayOfWeek.FRIDAY,   "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("FRI-A7","Art & Craft",        "10-A",DayOfWeek.FRIDAY,   "14:55","15:40","10005","Art Room",7),
         ClassSchedule("FRI-B1","Geography",          "10-B",DayOfWeek.FRIDAY,   "09:00","09:45","10003","Room 104",1),
         ClassSchedule("FRI-B2","Computer Science",   "10-B",DayOfWeek.FRIDAY,   "09:55","10:40","10004","Lab 2",   2),
         ClassSchedule("FRI-B3","Physics",            "10-B",DayOfWeek.FRIDAY,   "10:50","11:35","10001","Lab 1",   3),
         ClassSchedule("FRI-B4","English Literature", "10-B",DayOfWeek.FRIDAY,   "12:15","13:00","10002","Room 103",4),
         ClassSchedule("FRI-B5","Mathematics",        "10-B",DayOfWeek.FRIDAY,   "13:10","13:55","10000","Room 101",5),
-        ClassSchedule("FRI-B6","Biology",            "10-B",DayOfWeek.FRIDAY,   "14:05","14:50","10001","Lab 3",   6)
+        ClassSchedule("FRI-B6","Physical Education", "10-B",DayOfWeek.FRIDAY,   "14:05","14:50","10004","Ground",  6),
+        ClassSchedule("FRI-B7","Art & Craft",        "10-B",DayOfWeek.FRIDAY,   "14:55","15:40","10005","Art Room",7)
     )
 
     val weekdayFreePeriods: List<FreePeriod> = DayOfWeek.entries
@@ -277,18 +316,26 @@ object AttendanceRepository {
         activitySuggestions.filter { it.durationMinutes <= durationMinutes }.shuffled().take(3)
 
     val subjects = listOf(
-        "Mathematics","Physics","Chemistry","Biology",
-        "English Language","English Literature",
-        "History & Civics","Geography","Computer Science","Physical Education"
+        "Mathematics", "Physics", "Chemistry", "Biology",
+        "English Language", "English Literature",
+        "History & Civics", "Geography",
+        "Computer Science", "Physical Education", "Art & Craft"
     )
 
     val simulatedStudentAttendance: Map<String, Map<String, Int>> =
         students.associate { s -> s.id to subjects.associate { sub -> sub to (68..100).random() } }
 
     val totalClassesPerSubject: Map<String, Int> = mapOf(
-        "Mathematics" to 24, "Physics" to 18, "Chemistry" to 18, "Biology" to 16,
-        "English Language" to 20, "English Literature" to 16,
-        "History & Civics" to 14, "Geography" to 14,
-        "Computer Science" to 16, "Physical Education" to 12
+        "Mathematics"        to 24,
+        "Physics"            to 18,
+        "Chemistry"          to 18,
+        "Biology"            to 16,
+        "English Language"   to 20,
+        "English Literature" to 16,
+        "History & Civics"   to 14,
+        "Geography"          to 14,
+        "Computer Science"   to 16,
+        "Physical Education" to 20,
+        "Art & Craft"        to 20
     )
 }

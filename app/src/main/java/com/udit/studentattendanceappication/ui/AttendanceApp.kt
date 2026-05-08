@@ -1,52 +1,91 @@
 package com.udit.studentattendanceappication.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.udit.studentattendanceappication.ui.data.AttendanceRepository
 import com.udit.studentattendanceappication.ui.model.UserRole
+import com.udit.studentattendanceappication.ui.theme.ContentBg
+import com.udit.studentattendanceappication.ui.theme.SchoolGreen
 
 /**
  * AttendanceApp — the root composable of the entire app.
  *
- * This function decides which screen to show based on the current state:
- *   1. Splash screen (shown for 2.5 seconds on first launch)
- *   2. Login screen (shown when no user is logged in)
- *   3. Attendance marking screen (shown when teacher opens a class)
- *   4. Teacher dashboard or Student dashboard (based on role)
- *
- * viewModel() gives us the AttendanceViewModel which holds all the app state.
+ * Routing order:
+ *   1. Splash screen (2.5 seconds)
+ *   2. Loading spinner (while Firebase login is in progress)
+ *   3. Login screen (no user logged in)
+ *   4. Admin dashboard (role = Admin)
+ *   5. Attendance marking screen (teacher opened a class)
+ *   6. Teacher dashboard or Student dashboard
  */
 @Composable
 fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
-
-    // Read the current UI state from the ViewModel
     val state = viewModel.uiState
 
-    // Step 1: Show splash screen on first launch
-    // showSplash starts as true and becomes false after 2.5 seconds
+    // Step 1: Splash screen
     if (viewModel.showSplash) {
         SplashScreen(onFinished = viewModel::splashFinished)
         return
     }
 
-    // Step 2: Show login screen if no user is logged in
+    // Step 2: Loading spinner while Firebase is working
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(ContentBg),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = SchoolGreen)
+        }
+        return
+    }
+
+    // Step 3: Login screen
     if (state.loginResult == null) {
-        LoginScreen(
-            errorMessage = state.errorMessage,
-            onLogin = viewModel::login
-        )
+        LoginScreen(errorMessage = state.errorMessage, onLogin = viewModel::login)
         return
     }
 
     val loginResult = state.loginResult
+
+    // Step 4: Admin dashboard
+    if (loginResult.role == UserRole.Admin) {
+        // Load teachers when admin first arrives
+        LaunchedEffect(Unit) { viewModel.loadAdminTeachers() }
+
+        AdminDashboardScreen(
+            uiState = state,
+            teachers = viewModel.adminTeachers,
+            students = viewModel.adminStudents,
+            isLoading = state.isLoading,
+            onSelectTab = viewModel::selectAdminTab,
+            onLogout = viewModel::logout,
+            onAddTeacher = { name, subject, age, qual, exp, phone, email, ct, subjects, password, onSuccess ->
+                viewModel.addTeacher(name, subject, age, qual, exp, phone, email, ct, subjects, password, onSuccess)
+            },
+            onAddStudent = { name, section, dob, gender, blood, address, pName, pPhone, pOcc, house, sports, bus, password, onSuccess ->
+                viewModel.addStudent(name, section, dob, gender, blood, address, pName, pPhone, pOcc, house, sports, bus, password, onSuccess)
+            },
+            onDeleteTeacher = viewModel::deleteTeacher,
+            onDeleteStudent = viewModel::deleteStudent,
+            onShowSnackbar = viewModel::showSnackbar
+        )
+        return
+    }
+
     val isTeacher = loginResult.role == UserRole.Teacher
 
-    // Step 3: Show attendance marking screen if teacher opened a class
+    // Step 5: Attendance marking screen (teacher only)
     if (state.selectedClassId != null) {
         val classInfo = AttendanceRepository.schedule.first { it.id == state.selectedClassId }
         val date = state.selectedDate
         val sectionStudents = AttendanceRepository.studentsInSection(classInfo.classSection)
-
         AttendanceScreen(
             classInfo = classInfo,
             date = date,
@@ -64,23 +103,43 @@ fun AttendanceApp(viewModel: AttendanceViewModel = viewModel()) {
         return
     }
 
-    // Step 4: Filter the schedule to only show classes for the selected day
-    // Teachers see only their own classes; students see only their section's classes
-    val selectedDayClasses = AttendanceRepository.schedule.filter { cls ->
-        cls.dayOfWeek == state.selectedDate.dayOfWeek && when {
-            isTeacher -> cls.teacherId == loginResult.userId
-            else      -> cls.classSection == loginResult.classSection
+    // Step 6: Filter schedule for selected day
+    // For teachers: show classes where teacherId matches their userId
+    // For students: show classes where classSection matches their section
+    // If no classes found for teacher (new Firebase teacher not in hardcoded schedule),
+    // fall back to showing all classes for the day so the UI isn't empty
+    val selectedDayClasses = if (isTeacher) {
+        val teacherClasses = AttendanceRepository.schedule.filter { cls ->
+            cls.dayOfWeek == state.selectedDate.dayOfWeek &&
+            cls.teacherId == loginResult.userId
+        }.sortedBy { it.periodNumber }
+
+        // If teacher has no classes in hardcoded schedule (new Firebase teacher),
+        // show all classes for the day as a demo
+        if (teacherClasses.isEmpty()) {
+            AttendanceRepository.schedule.filter { cls ->
+                cls.dayOfWeek == state.selectedDate.dayOfWeek
+            }.sortedBy { it.periodNumber }
+        } else {
+            teacherClasses
         }
-    }.sortedBy { it.periodNumber }   // sort by period number (1st, 2nd, 3rd...)
+    } else {
+        val studentSection = loginResult.classSection.ifEmpty { "10-A" }
+        AttendanceRepository.schedule.filter { cls ->
+            cls.dayOfWeek == state.selectedDate.dayOfWeek &&
+            cls.classSection == studentSection
+        }.sortedBy { it.periodNumber }
+    }
 
     val weekDates = datesForWeek(state.selectedDate)
 
-    // Step 5: Show the correct dashboard based on role
+    // Step 7: Route to correct dashboard
     if (isTeacher) {
         TeacherDashboardScreen(
             uiState = state,
             classes = selectedDayClasses,
             weekDates = weekDates,
+            loadedTeacher = viewModel.loadedTeacher,
             onSelectTab = viewModel::selectTeacherTab,
             onLogout = viewModel::logout,
             onChangeMonth = viewModel::changeMonth,

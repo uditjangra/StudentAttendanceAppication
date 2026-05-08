@@ -67,7 +67,7 @@ fun LoginScreen(
                 onValueChange = { userId = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Enter User ID", color = Color.White.copy(alpha = 0.5f)) },
+                placeholder = { Text("Admin: email  |  Teacher/Student: ID", color = Color.White.copy(alpha = 0.5f)) },
                 shape = RoundedCornerShape(14.dp),
                 colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,

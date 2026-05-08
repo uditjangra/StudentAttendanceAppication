@@ -60,8 +60,8 @@ data class LoginResult(
     val classSection: String = ""
 )
 
-// UserRole — either Teacher or Student
-enum class UserRole { Teacher, Student }
+// UserRole — Admin, Teacher, or Student
+enum class UserRole { Admin, Teacher, Student }
 
 // DashboardTab — the 4 tabs in the student bottom navigation bar
 enum class DashboardTab(val label: String) {
@@ -95,14 +95,21 @@ data class ActivitySuggestion(
 )
 
 // AppUiState — the single source of truth for the entire app's UI state
-// The ViewModel holds one instance of this and updates it on every action
 data class AppUiState(
-    val loginResult: LoginResult? = null,       // null = not logged in
+    val loginResult: LoginResult? = null,
     val selectedStudentTab: DashboardTab = DashboardTab.Home,
     val selectedTeacherTab: TeacherTab = TeacherTab.Home,
+    val selectedAdminTab: AdminTab = AdminTab.Teachers,
     val selectedMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
-    val selectedClassId: String? = null,        // null = attendance screen not open
+    val selectedClassId: String? = null,
     val errorMessage: String? = null,
-    val snackbarMessage: String? = null
+    val snackbarMessage: String? = null,
+    val isLoading: Boolean = false   // true while Firebase operations are in progress
 )
+
+// AdminTab — the tabs in the admin dashboard
+enum class AdminTab(val label: String) {
+    Teachers("Teachers"),
+    Students("Students")
+}

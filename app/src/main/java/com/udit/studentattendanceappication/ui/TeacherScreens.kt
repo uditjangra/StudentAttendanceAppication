@@ -80,6 +80,7 @@ fun TeacherDashboardScreen(
     uiState: AppUiState,
     classes: List<ClassSchedule>,
     weekDates: List<LocalDate>,
+    loadedTeacher: com.udit.studentattendanceappication.ui.model.Teacher?,
     onSelectTab: (TeacherTab) -> Unit,
     onLogout: () -> Unit,
     onChangeMonth: (Long) -> Unit,
@@ -153,6 +154,7 @@ fun TeacherDashboardScreen(
             when (uiState.selectedTeacherTab) {
                 TeacherTab.Home -> TeacherHomeContent(
                     loginResult = loginResult,
+                    teacher = loadedTeacher,
                     classes = classes,
                     selectedDate = uiState.selectedDate,
                     onTakeAttendance = onTakeAttendance,
@@ -171,6 +173,7 @@ fun TeacherDashboardScreen(
                 )
                 TeacherTab.Profile -> TeacherProfileScreen(
                     loginResult = loginResult,
+                    teacher = loadedTeacher,
                     onLogout = onLogout,
                     onShowSnackbar = onShowSnackbar
                 )
@@ -186,12 +189,13 @@ fun TeacherDashboardScreen(
 @Composable
 fun TeacherHomeContent(
     loginResult: LoginResult,
+    teacher: com.udit.studentattendanceappication.ui.model.Teacher?,
     classes: List<ClassSchedule>,
     selectedDate: LocalDate,
     onTakeAttendance: (String) -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
-    val teacher = AttendanceRepository.teachers.firstOrNull { it.id == loginResult.userId }
+    // Use Firebase-loaded teacher data; fall back to hardcoded if not yet loaded
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -430,10 +434,11 @@ private fun TeacherSubjectCard(
 @Composable
 fun TeacherProfileScreen(
     loginResult: LoginResult,
+    teacher: com.udit.studentattendanceappication.ui.model.Teacher?,
     onLogout: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
-    val teacher = AttendanceRepository.teachers.firstOrNull { it.id == loginResult.userId }
+    // Use Firebase-loaded teacher data directly — no hardcoded lookup needed
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
