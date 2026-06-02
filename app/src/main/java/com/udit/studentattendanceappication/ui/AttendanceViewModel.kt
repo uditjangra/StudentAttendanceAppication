@@ -5,125 +5,239 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.udit.studentattendanceappication.ui.data.AttendanceRepository
+import com.udit.studentattendanceappication.ui.data.FirebaseService
+import com.udit.studentattendanceappication.ui.model.AdminTab
 import com.udit.studentattendanceappication.ui.model.AppUiState
 import com.udit.studentattendanceappication.ui.model.DashboardTab
 import com.udit.studentattendanceappication.ui.model.LoginResult
+import com.udit.studentattendanceappication.ui.model.Student
+import com.udit.studentattendanceappication.ui.model.Teacher
 import com.udit.studentattendanceappication.ui.model.TeacherTab
 import com.udit.studentattendanceappication.ui.model.UserRole
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
-/**
- * AttendanceViewModel — the brain of the app.
- *
- * In Android's MVVM (Model-View-ViewModel) pattern:
- *  - Model = AttendanceRepository (the data)
- *  - View = all the @Composable screens
- *  - ViewModel = this class (holds state, handles user actions)
- *
- * The ViewModel survives screen rotations and config changes.
- * All UI state is stored here so the screens just read and display it.
- */
 class AttendanceViewModel : ViewModel() {
 
-    // uiState holds everything the UI needs to display.
-    // mutableStateOf means: when this value changes, Compose automatically redraws the screen.
     var uiState by mutableStateOf(AppUiState())
-        private set   // only this ViewModel can change it; screens can only read it
+        private set
 
-    // showSplash controls whether the splash screen is visible.
-    // Starts as true, set to false after 2.5 seconds.
+    // Splash screen flag
     var showSplash by mutableStateOf(true)
         private set
 
-    // attendanceState stores which students are present/absent for each class on each date.
-    // The key is "classId|date" (e.g. "MON-A1|2026-05-01") so each class+date combination
-    // has its own separate attendance record.
-    // mutableStateMapOf means: when entries change, Compose redraws screens that use this map.
+    // Store admin credentials to re-sign in after creating teacher/student accounts
+    private var adminEmail = ""
+    private var adminPassword = ""
+
+    // Attendance storage: key = "classId|date" -> Map<studentId, Boolean>
     private val attendanceState = mutableStateMapOf<String, MutableMap<String, Boolean>>()
 
-    // Called by SplashScreen after 2.5 seconds to navigate to login
-    fun splashFinished() {
-        showSplash = false
-    }
+    // Loaded teacher/student profile from Firebase (null until loaded)
+    var loadedTeacher by mutableStateOf<Teacher?>(null)
+        private set
+    var loadedStudent by mutableStateOf<Student?>(null)
+        private set
 
-    // ── Login / Logout ────────────────────────────────────────────────────────
+    // Admin panel lists
+    var adminTeachers by mutableStateOf<List<Teacher>>(emptyList())
+        private set
+    var adminStudents by mutableStateOf<List<Student>>(emptyList())
+        private set
+
+    fun splashFinished() { showSplash = false }
+
+    // ── Login ─────────────────────────────────────────────────────────────────
 
     fun login(userId: String, password: String) {
-        // Check password first — all users share the same demo password "123"
-        if (password != "123") {
-            uiState = uiState.copy(errorMessage = "Invalid password. Use 123.")
+        if (userId.isBlank() || password.isBlank()) {
+            uiState = uiState.copy(errorMessage = "Please enter User ID and Password.")
             return
         }
 
-        // Check if the userId belongs to a teacher
-        val teacher = AttendanceRepository.teachers.firstOrNull { it.id == userId }
-        if (teacher != null) {
-            // Login successful as teacher — create a fresh AppUiState
-            uiState = AppUiState(
-                loginResult = LoginResult(UserRole.Teacher, teacher.id, teacher.name),
-                selectedDate = LocalDate.now(),
-                selectedMonth = YearMonth.now()
-            )
-            return
-        }
+        uiState = uiState.copy(isLoading = true, errorMessage = null)
 
-        // Check if the userId belongs to a student
-        val student = AttendanceRepository.students.firstOrNull { it.id == userId }
-        if (student != null) {
-            // Login successful as student
-            uiState = AppUiState(
-                loginResult = LoginResult(
-                    role = UserRole.Student,
-                    userId = student.id,
-                    displayName = student.name,
-                    classSection = student.classSection
-                ),
-                selectedDate = LocalDate.now(),
-                selectedMonth = YearMonth.now()
-            )
-            return
-        }
+        viewModelScope.launch {
+            try {
+                val (role, uid) = FirebaseService.login(userId.trim(), password.trim())
 
-        // Neither teacher nor student found
-        uiState = uiState.copy(errorMessage = "User ID not found.")
+                when (role) {
+                    "admin" -> {
+                        adminEmail = userId.trim()
+                        adminPassword = password.trim()
+                        uiState = AppUiState(
+                            loginResult = LoginResult(UserRole.Admin, userId, "Admin"),
+                            isLoading = false
+                        )
+                    }
+                    "teacher" -> {
+                        val teacher = FirebaseService.fetchTeacher(userId)
+                        loadedTeacher = teacher
+                        uiState = AppUiState(
+                            loginResult = LoginResult(
+                                role = UserRole.Teacher,
+                                userId = userId,
+                                displayName = teacher?.name ?: userId
+                            ),
+                            selectedDate = LocalDate.now(),
+                            selectedMonth = YearMonth.now(),
+                            isLoading = false
+                        )
+                    }
+                    "student" -> {
+                        val student = FirebaseService.fetchStudent(userId)
+                        loadedStudent = student
+                        uiState = AppUiState(
+                            loginResult = LoginResult(
+                                role = UserRole.Student,
+                                userId = userId,
+                                displayName = student?.name ?: userId,
+                                classSection = student?.classSection ?: ""
+                            ),
+                            selectedDate = LocalDate.now(),
+                            selectedMonth = YearMonth.now(),
+                            isLoading = false
+                        )
+                    }
+                    else -> {
+                        uiState = uiState.copy(
+                            isLoading = false,
+                            errorMessage = "Unknown role. Contact admin."
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                uiState = uiState.copy(
+                    isLoading = false,
+                    errorMessage = "Login failed: ${e.message}"
+                )
+            }
+        }
     }
 
     fun logout() {
-        // Reset to a blank AppUiState — this takes the user back to the login screen
+        FirebaseService.logout()
+        loadedTeacher = null
+        loadedStudent = null
         uiState = AppUiState()
     }
 
-    // ── Tab Navigation ────────────────────────────────────────────────────────
+    // ── Admin ─────────────────────────────────────────────────────────────────
 
-    // Called when the student taps a bottom nav tab
-    fun selectStudentTab(tab: DashboardTab) {
-        uiState = uiState.copy(selectedStudentTab = tab)
+    fun selectAdminTab(tab: AdminTab) {
+        uiState = uiState.copy(selectedAdminTab = tab)
+        if (tab == AdminTab.Teachers) loadAdminTeachers()
+        else loadAdminStudents()
     }
 
-    // Called when the teacher taps a bottom nav tab
-    fun selectTeacherTab(tab: TeacherTab) {
-        uiState = uiState.copy(selectedTeacherTab = tab)
+    fun loadAdminTeachers() {
+        viewModelScope.launch {
+            try {
+                adminTeachers = FirebaseService.fetchAllTeachers()
+            } catch (e: Exception) {
+                showSnackbar("Failed to load teachers: ${e.message}")
+            }
+        }
     }
 
-    // Called when teacher taps "Mark Attendance" on a class card
-    fun openAttendance(classId: String) {
-        uiState = uiState.copy(selectedClassId = classId)
+    fun loadAdminStudents() {
+        viewModelScope.launch {
+            try {
+                adminStudents = FirebaseService.fetchAllStudents()
+            } catch (e: Exception) {
+                showSnackbar("Failed to load students: ${e.message}")
+            }
+        }
     }
 
-    // Called when teacher taps the back button on the attendance screen
-    fun closeAttendance() {
-        uiState = uiState.copy(selectedClassId = null)
+    fun addTeacher(
+        name: String, subject: String, age: String, qualification: String,
+        experience: String, phone: String, email: String,
+        classTeacherOf: String, subjectsTaught: String, initialPassword: String,
+        onSuccess: (userId: String, password: String) -> Unit
+    ) {
+        uiState = uiState.copy(isLoading = true)
+        viewModelScope.launch {
+            try {
+                val (userId, password) = FirebaseService.addTeacher(
+                    adminEmail, adminPassword,
+                    name, subject, age, qualification, experience,
+                    phone, email, classTeacherOf, subjectsTaught, initialPassword
+                )
+                uiState = uiState.copy(isLoading = false)
+                loadAdminTeachers()
+                onSuccess(userId, password)
+            } catch (e: Exception) {
+                uiState = uiState.copy(isLoading = false)
+                showSnackbar("Failed to add teacher: ${e.message}")
+            }
+        }
     }
 
-    // ── Calendar Navigation ───────────────────────────────────────────────────
+    fun addStudent(
+        name: String, classSection: String, dateOfBirth: String, gender: String,
+        bloodGroup: String, address: String, parentName: String, parentPhone: String,
+        parentOccupation: String, sportsHouse: String, sports: String, busRoute: String,
+        initialPassword: String,
+        onSuccess: (userId: String, password: String) -> Unit
+    ) {
+        uiState = uiState.copy(isLoading = true)
+        viewModelScope.launch {
+            try {
+                val (userId, password) = FirebaseService.addStudent(
+                    adminEmail, adminPassword,
+                    name, classSection, dateOfBirth, gender, bloodGroup,
+                    address, parentName, parentPhone, parentOccupation,
+                    sportsHouse, sports, busRoute, initialPassword
+                )
+                uiState = uiState.copy(isLoading = false)
+                loadAdminStudents()
+                onSuccess(userId, password)
+            } catch (e: Exception) {
+                uiState = uiState.copy(isLoading = false)
+                showSnackbar("Failed to add student: ${e.message}")
+            }
+        }
+    }
 
-    // Called when teacher taps the left/right arrows on the calendar
-    // offset = -1 for previous month, +1 for next month
+    fun deleteTeacher(userId: String) {
+        viewModelScope.launch {
+            try {
+                FirebaseService.deleteTeacher(userId)
+                loadAdminTeachers()
+                showSnackbar("Teacher removed")
+            } catch (e: Exception) {
+                showSnackbar("Failed to delete: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteStudent(userId: String) {
+        viewModelScope.launch {
+            try {
+                FirebaseService.deleteStudent(userId)
+                loadAdminStudents()
+                showSnackbar("Student removed")
+            } catch (e: Exception) {
+                showSnackbar("Failed to delete: ${e.message}")
+            }
+        }
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    fun selectStudentTab(tab: DashboardTab) { uiState = uiState.copy(selectedStudentTab = tab) }
+    fun selectTeacherTab(tab: TeacherTab)   { uiState = uiState.copy(selectedTeacherTab = tab) }
+    fun openAttendance(classId: String)     { uiState = uiState.copy(selectedClassId = classId) }
+    fun closeAttendance()                   { uiState = uiState.copy(selectedClassId = null) }
+
+    // ── Calendar ──────────────────────────────────────────────────────────────
+
     fun changeMonth(offset: Long) {
         val nextMonth = uiState.selectedMonth.plusMonths(offset)
-        // Make sure the selected day is valid in the new month (e.g. Jan 31 -> Feb 28)
         val adjustedDay = minOf(uiState.selectedDate.dayOfMonth, nextMonth.lengthOfMonth())
         uiState = uiState.copy(
             selectedMonth = nextMonth,
@@ -131,26 +245,17 @@ class AttendanceViewModel : ViewModel() {
         )
     }
 
-    // Called when teacher taps a date on the calendar
     fun selectDate(date: LocalDate) {
-        uiState = uiState.copy(
-            selectedDate = date,
-            selectedMonth = YearMonth.from(date)
-        )
+        uiState = uiState.copy(selectedDate = date, selectedMonth = YearMonth.from(date))
     }
 
-    // ── Attendance Marking ────────────────────────────────────────────────────
+    // ── Attendance ────────────────────────────────────────────────────────────
 
-    // Creates a unique key for each class+date combination
-    // Example: "MON-A1|2026-05-01"
     private fun attendanceKey(classId: String, date: LocalDate) = "$classId|$date"
 
-    // Mark one student as present or absent
     fun markAttendance(classId: String, studentId: String, present: Boolean, date: LocalDate) {
         val key = attendanceKey(classId, date)
         val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
-
-        // Get existing attendance map for this class+date, or create a new one with all absent
         val map = attendanceState.getOrPut(key) {
             AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
         }
@@ -158,20 +263,17 @@ class AttendanceViewModel : ViewModel() {
         attendanceState[key] = map
     }
 
-    // Mark ALL students in the class as present at once
     fun markAllPresent(classId: String, date: LocalDate) {
         val key = attendanceKey(classId, date)
         val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
         val map = attendanceState.getOrPut(key) {
             AttendanceRepository.studentsInSection(section).associate { it.id to false }.toMutableMap()
         }
-        // Set every student to present (true)
         AttendanceRepository.studentsInSection(section).forEach { map[it.id] = true }
         attendanceState[key] = map
         showSnackbar("All students marked present")
     }
 
-    // Get the attendance map for a specific class on a specific date
     fun attendanceFor(classId: String, date: LocalDate): Map<String, Boolean> {
         val key = attendanceKey(classId, date)
         val section = AttendanceRepository.schedule.firstOrNull { it.id == classId }?.classSection ?: ""
@@ -180,23 +282,14 @@ class AttendanceViewModel : ViewModel() {
         }
     }
 
-    // Count how many students are present
     fun presentCount(classId: String, date: LocalDate): Int =
         attendanceFor(classId, date).values.count { it == true }
 
-    // Count how many students are absent
     fun absentCount(classId: String, date: LocalDate): Int =
         attendanceFor(classId, date).values.count { it == false }
 
-    // ── Snackbar (toast-like messages) ────────────────────────────────────────
+    // ── Snackbar ──────────────────────────────────────────────────────────────
 
-    // Show a short message at the bottom of the screen
-    fun showSnackbar(message: String) {
-        uiState = uiState.copy(snackbarMessage = message)
-    }
-
-    // Clear the message after it has been shown
-    fun dismissSnackbar() {
-        uiState = uiState.copy(snackbarMessage = null)
-    }
+    fun showSnackbar(message: String) { uiState = uiState.copy(snackbarMessage = message) }
+    fun dismissSnackbar()             { uiState = uiState.copy(snackbarMessage = null) }
 }
